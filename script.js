@@ -493,14 +493,14 @@ function updateInfoCard(studentId) {
         card.innerHTML = `
             <p class="mb-0 text-success">
                 <i class="fas fa-check-circle me-1"></i> <strong>Your results are available!</strong><br>
-                <small class="text-muted">Results are uploaded by lecturers and approved by admin.</small>
+                <small class="text-muted">Results uploaded</small>
             </p>
         `;
     } else {
         card.innerHTML = `
             <p class="mb-0 text-muted">
                 <i class="fas fa-clock me-1"></i> <strong>No results yet.</strong><br>
-                <small>Results are uploaded by lecturers and approved by admin.</small>
+                <small> No result uploaded</small>
             </p>
         `;
     }
