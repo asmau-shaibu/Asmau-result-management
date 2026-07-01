@@ -1,4 +1,4 @@
-// ============================================================
+  // ============================================================
 // DATA LAYER – localStorage
 // ============================================================
 const DB = {
@@ -405,7 +405,7 @@ function showRegisterError(msg) {
 }
 
 // ============================================================
-// DASHBOARD RENDER FUNCTIONS
+// DASHBOARD RENDER FUNCTIONS (SIMPLIFIED)
 // ============================================================
 
 function renderDashboard(user) {
@@ -442,101 +442,6 @@ function renderDashboard(user) {
     }
 }
 
-// ---- STUDENT ----
-function renderStudentView(user) {
-    var students = getStudents();
-    var student = students.find(function(s) { return s.id === user.studentId; });
-    if (!student) {
-        document.getElementById('studentProfile').innerHTML = '<p class="text-danger">Student profile not found.</p>';
-        return;
-    }
-
-    document.getElementById('studentProfile').innerHTML = `
-        <p><strong>Name:</strong> ${student.name}</p>
-        <p><strong>Email:</strong> ${student.email}</p>
-        <p><strong>Program:</strong> ${student.program}</p>
-        <p><strong>Level:</strong> ${student.level}</p>
-        <p><strong>Student ID:</strong> ${student.id}</p>
-    `;
-
-    renderStudentResults(student.id);
-    updateInfoCard(student.id);
-
-    // Refresh button
-    var refreshBtn = document.getElementById('refreshResultsBtn');
-    if (refreshBtn) {
-        var newRefreshBtn = refreshBtn.cloneNode(true);
-        refreshBtn.parentNode.replaceChild(newRefreshBtn, refreshBtn);
-        newRefreshBtn.addEventListener('click', function() {
-            renderStudentResults(student.id);
-            updateInfoCard(student.id);
-        });
-    }
-
-    // ----- TRANSCRIPT BUTTON (FIXED) -----
-    var transcriptBtn = document.getElementById('generateTranscriptBtn');
-    if (transcriptBtn) {
-        var newTranscriptBtn = transcriptBtn.cloneNode(true);
-        transcriptBtn.parentNode.replaceChild(newTranscriptBtn, transcriptBtn);
-        newTranscriptBtn.addEventListener('click', function() {
-            generateTranscript(student.id);
-        });
-    }
-}
-
-function renderStudentResults(studentId) {
-    var grades = getGrades().filter(function(g) { return g.studentId === studentId && g.status === 'approved'; });
-    var container = document.getElementById('resultsTableContainer');
-    if (grades.length === 0) {
-        container.innerHTML = '<p class="text-muted">No approved results yet. Please contact your lecturer.</p>';
-        document.getElementById('cgpaDisplay').textContent = '0.00';
-        return false;
-    }
-    var html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Course Code</th><th>Title</th><th>Credit</th><th>Grade</th><th>GP</th></tr></thead><tbody>';
-    var totalPoints = 0, totalCredits = 0;
-    grades.forEach(function(g) {
-        totalPoints += g.gp * g.credit;
-        totalCredits += g.credit;
-        html += '<tr><td>' + g.courseCode + '</td><td>' + g.courseTitle + '</td><td>' + g.credit + '</td><td>' + g.grade + '</td><td>' + g.gp.toFixed(1) + '</td></tr>';
-    });
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-    var cgpa = totalCredits > 0 ? (totalPoints / totalCredits) : 0;
-    document.getElementById('cgpaDisplay').textContent = cgpa.toFixed(2);
-    return true;
-}
-
-function updateInfoCard(studentId) {
-    var card = document.getElementById('infoCard');
-    if (!card) return;
-    var grades = getGrades().filter(function(g) { return g.studentId === studentId && g.status === 'approved'; });
-    if (grades.length > 0) {
-        card.innerHTML = `
-            <p class="mb-0 text-success">
-                <i class="fas fa-check-circle me-1"></i> <strong>Your results are available!</strong><br>
-                <small class="text-muted">Results are uploaded by lecturers and approved by admin.</small>
-            </p>
-        `;
-    } else {
-        card.innerHTML = `
-            <p class="mb-0 text-muted">
-                <i class="fas fa-clock me-1"></i> <strong>No results yet.</strong><br>
-                <small>Results are uploaded by lecturers and approved by admin.</small>
-            </p>
-        `;
-    }
-}
-
-// ============================================================
-// 🖨️ TRANSCRIPT FUNCTION – FIXED FOR GITHUB PAGES
-// ============================================================
-function generateTranscript(studentId) {
-    var students = getStudents();
-    var student = students.find(function(s) { return s.id === studentId; });
-    if (!student) {
-        showErrorModal('Error', 'Student not found.');
-        return;
-    }
 
     var grades = getGrades().filter(function(g) {
         return g.studentId === studentId && g.status === 'approved';
@@ -1549,6 +1454,93 @@ function renderLecturerView(user) {
 
     if (courses.length > 0) loadGradeEntry(courses[0].id);
 }
+
+// ============================================================
+// 🖨️ TRANSCRIPT FUNCTION – WORKS ON GITHUB PAGES
+// ============================================================
+function generateTranscript(studentId) {
+    var students = getStudents();
+    var student = students.find(function(s) { return s.id === studentId; });
+    if (!student) {
+        showErrorModal('Error', 'Student not found.');
+        return;
+    }
+
+    var grades = getGrades().filter(function(g) {
+        return g.studentId === studentId && g.status === 'approved';
+    });
+
+    if (grades.length === 0) {
+        showErrorModal('No Results', 'No approved results to generate transcript.');
+        return;
+    }
+
+    // Calculate totals
+    var totalPoints = 0, totalCredits = 0;
+    var rows = '';
+    grades.forEach(function(g) {
+        totalPoints += g.gp * g.credit;
+        totalCredits += g.credit;
+        rows += '<tr><td>' + g.courseCode + '</td><td>' + g.courseTitle + '</td><td>' + g.credit + '</td><td>' + g.grade + '</td><td>' + g.gp.toFixed(1) + '</td></tr>';
+    });
+    var cgpa = totalCredits > 0 ? (totalPoints / totalCredits) : 0;
+
+    // Build transcript HTML
+    var content = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Transcript - ${student.name}</title>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+            <style>
+                body { padding: 30px; }
+                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+                .cgpa { font-size: 1.2rem; font-weight: bold; }
+                @media print { .no-print { display: none; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>OFFICIAL TRANSCRIPT</h2>
+                <p><strong>${student.name}</strong> (${student.program}) - ${student.level}</p>
+                <p>Student ID: ${student.id}</p>
+            </div>
+            <table class="table table-bordered">
+                <thead><tr><th>Course</th><th>Title</th><th>Credit</th><th>Grade</th><th>GP</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <p class="cgpa">CGPA: ${cgpa.toFixed(2)}</p>
+            <button class="btn btn-primary no-print" onclick="window.print()">Print Transcript</button>
+            <br><br>
+            <button class="btn btn-secondary no-print" onclick="window.close()">Close</button>
+        </body>
+        </html>
+    `;
+
+    // Try to open a new window
+    var win = window.open('', '_blank');
+    if (!win) {
+        // Pop-up blocked – fallback: download HTML file
+        showErrorModal('Pop-up Blocked', 
+            'Please allow pop-ups for this site. Your transcript will download as an HTML file.');
+        var blob = new Blob([content], { type: 'text/html' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'Transcript_' + student.name.replace(/\s/g, '_') + '.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    // Write content to the new window
+    win.document.write(content);
+    win.document.close();
+    win.focus();
+}
+
 
 function loadGradeEntry(courseId) {
     var area = document.getElementById('gradeEntryArea');
